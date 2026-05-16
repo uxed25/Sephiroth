@@ -1,0 +1,13 @@
+1. Instalar visual Studio (sudo snap install --classic code).
+2. Instalar node y npm (sudo apt install nodejs npm) opcional verificar(nodejs -v, npm -v).
+3. Crear proyecto (mkdir sephiroth) y entrar dentro de la carpeta (cd sephiroth).
+4. npm init -y
+5. npm install express
+6. Dar permisos al usuario base de (el que no es root):
+    sudo chown -R home:home /home/home/Documentos/sephiroth
+    sudo chmod -R 755 /home/home/Documentos/sephiroth
+7. Crear index.js
+8. Instalar nodemon (npm install --save-dev nodemon).
+9. Instalar multer (npm install multer) esto lo que hace es para controlar la gestion de 
+   subida de archivos.
+10. Instalar Sessions (npm install express-session)

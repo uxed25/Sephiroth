@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sephiroth - Login</title>
+    <style>
+        :root {
+            --abismo: #0a0a0a;
+            --acero: #c0c0c0;
+            --mako: #00f2ad;
+            --card-bg: #161616;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--abismo);
+            color: var(--acero);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 5px;
+            border-top: 3px solid var(--mako);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.9);
+            width: 300px;
+            text-align: center;
+        }
+        h2 { margin-bottom: 25px; letter-spacing: 3px; text-transform: uppercase; }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--mako);
+            box-shadow: 0 0 8px var(--mako);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            color: var(--mako);
+            border: 1px solid var(--mako);
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: var(--mako);
+            color: var(--abismo);
+            box-shadow: 0 0 15px var(--mako);
+        }
+        a { color: #666; text-decoration: none; font-size: 0.8rem; margin-top: 15px; display: block; }
+        a:hover { color: var(--acero); }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>Sephiroth</h2>
+        <form action="/login" method="POST">
+            <input type="text" name="user" placeholder="Identidad (Usuario)" required>
+            <input type="password" name="pass" placeholder="Clave de Acceso" required>
+            <button type="submit">Iniciar Reunión</button>
+        </form>
+        <a href="/registro">¿No eres un Soldado aún? Regístrate</a>
+    </div>
+</body>
+</html>

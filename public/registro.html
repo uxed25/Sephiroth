@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sephiroth - Registro</title>
+    <style>
+        /* Copiamos los mismos estilos base para mantener la coherencia */
+        :root {
+            --abismo: #0a0a0a;
+            --acero: #c0c0c0;
+            --mako: #00f2ad;
+            --card-bg: #161616;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--abismo);
+            color: var(--acero);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .register-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 5px;
+            border-left: 3px solid var(--mako); /* Cambio visual: borde lateral */
+            box-shadow: 0 15px 35px rgba(0,0,0,0.9);
+            width: 300px;
+            text-align: center;
+        }
+        h2 { margin-bottom: 25px; letter-spacing: 3px; text-transform: uppercase; }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        input:focus { border-color: var(--mako); outline: none; box-shadow: 0 0 8px var(--mako); }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: var(--mako); /* El botón de registro es sólido para destacar */
+            color: var(--abismo);
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        button:hover { box-shadow: 0 0 20px var(--mako); }
+        a { color: #666; text-decoration: none; font-size: 0.8rem; margin-top: 15px; display: block; }
+    </style>
+</head>
+<body>
+    <div class="register-card">
+        <h2>Inscripción</h2>
+        <form action="/register" method="POST">
+            <input type="text" name="nuevo_user" placeholder="Nuevo Guerrero" required>
+            <input type="password" name="nueva_pass" placeholder="Nueva Contraseña" required>
+            <button type="submit">Aceptar la Voluntad</button>
+        </form>
+        <a href="/">Ya tengo acceso</a>
+    </div>
+</body>
+</html>

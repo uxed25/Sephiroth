@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sephiroth - Cloud Drive</title>
+    <style>
+        :root {
+            --abismo: #0a0a0a;
+            --acero: #c0c0c0;
+            --mako: #00f2ad;
+            --peligro: #8b0000;
+            --card-bg: #161616;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--abismo);
+            color: var(--acero);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--acero);
+            box-shadow: 0 0 15px var(--mako);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 242, 173, 0.3);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 5px;
+            border-left: 4px solid var(--mako);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .upload-section {
+            border: 1px dashed var(--acero);
+            padding: 20px;
+            margin-bottom: 30px;
+            /* --- NUEVOS ESTILOS PARA CENTRAR --- */
+            display: flex;
+            flex-direction: column; /* Apila los elementos uno encima de otro */
+            align-items: center;    /* Centra horizontalmente todo el contenido */
+            text-align: center;
+        }
+
+        input[type="file"] {
+            margin-bottom: 15px;
+            display: block;
+            width: 100%;
+            color: var(--acero);
+        }
+
+        button {
+            background: transparent;
+            color: var(--mako);
+            border: 1px solid var(--mako);
+            padding: 10px 25px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: var(--mako);
+            color: var(--abismo);
+            box-shadow: 0 0 15px var(--mako);
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: #222;
+            margin: 10px 0;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 3px;
+            border: 1px solid #333;
+            transition: 0.2s;
+        }
+
+        .file-item:hover {
+            border-color: var(--mako);
+        }
+
+        .actions a {
+            color: var(--mako);
+            text-decoration: none;
+            margin-right: 15px;
+            font-size: 0.9rem;
+        }
+
+        .btn-eliminar {
+            background: transparent;
+            color: var(--peligro);
+            border: 1px solid var(--peligro);
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .btn-eliminar:hover {
+            background: var(--peligro);
+            color: white;
+            box-shadow: 0 0 10px var(--peligro);
+        }
+
+        .logout {
+            margin-top: 30px;
+            display: inline-block;
+            color: #666;
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+    <h1>Sephiroth Cloud</h1>
+    <p style="color: var(--mako); margin-top: 10px; font-weight: bold; letter-spacing: 2px;">
+        BIENVENIDO, <span id="nombreUsuario">...</span>
+    </p>
+    </header>
+
+    <div class="container">
+        <div class="upload-section">
+            <h3>Invocar Objeto</h3>
+            <form action="/upload" method="POST" enctype="multipart/form-data">
+                <input type="file" name="archivo_nube" required>
+                <button type="submit">Subir a la Corriente Vital</button>
+            </form>
+        </div>
+
+        <h3>Archivos en la Nube</h3>
+        <ul id="listaArchivos" class="file-list">
+            </ul>
+
+        <center><a href="/logout" class="logout">Abandonar la Reunión (Cerrar Sesión)</a></center>
+    </div>
+
+    <script>
+        // 1. CARGAR ARCHIVOS AL INICIAR
+        async function cargarArchivos() {
+            try {
+                const respuesta = await fetch('/api/archivos');
+                const archivos = await respuesta.json();
+                const lista = document.getElementById('listaArchivos');
+                
+                lista.innerHTML = ''; 
+                
+                if (archivos.length === 0) {
+                    lista.innerHTML = '<p style="text-align:center; color:#555;">No hay objetos en la nube.</p>';
+                    return;
+                }
+
+                archivos.forEach(nombre => {
+                    const li = document.createElement('li');
+                    li.className = 'file-item';
+                    li.innerHTML = `
+                        <span title="${nombre}">${nombre.length > 30 ? nombre.substring(0,27)+'...' : nombre}</span>
+                        <div class="actions">
+                            <a href="/drive/${nombre}" download>Descargar</a>
+                            <button class="btn-eliminar" onclick="eliminarArchivo('${nombre}')">Eliminar</button>
+                        </div>
+                    `;
+                    lista.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error cargando archivos:", error);
+            }
+        }
+
+        // 2. FUNCIÓN PARA ELIMINAR (CONECTADA AL INDEX.JS)
+        async function eliminarArchivo(nombre) {
+            if (confirm(`¿Estás seguro de que quieres destruir este objeto?`)) {
+                try {
+                    const res = await fetch('/api/eliminar', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json' 
+                        },
+                        body: JSON.stringify({ nombreArchivo: nombre })
+                    });
+                    
+                    const resultado = await res.json();
+                    
+                    if (resultado.success) {
+                        // Si el servidor confirma el borrado, refrescamos la lista
+                        cargarArchivos();
+                    } else {
+                        alert("Error: El servidor no pudo borrar el archivo.");
+                    }
+                } catch (error) {
+                    console.error("Error en la petición de borrado:", error);
+                    alert("Error de conexión con el servidor.");
+                }
+            }
+        }
+        async function obtenerNombre() {
+    try {
+        const res = await fetch('/api/usuario-actual');
+        const data = await res.json();
+        // Ponemos el nombre en mayúsculas para que sea más imponente
+        document.getElementById('nombreUsuario').textContent = data.user.toUpperCase();
+    } catch (error) {
+        console.error("Error al obtener identidad:", error);
+    }
+}
+
+// Y la llamamos al final del script junto a cargarArchivos()
+obtenerNombre();
+cargarArchivos();
+        // Ejecutar carga inicial
+        cargarArchivos();
+    </script>
+</body>
+</html>
