@@ -6,11 +6,12 @@ const session = require('express-session');
 const { DatabaseSync } = require('node:sqlite');
 
 const app = express();
-const PORT = 3000;
-const DATA_DIR = path.join(__dirname, 'data');
-const DB_FILE = path.join(DATA_DIR, 'sephiroth.sqlite');
+const PORT = process.env.PORT || 3000;
+const SESSION_SECRET = process.env.SESSION_SECRET || 'cambia_este_secreto_en_env';
+const DATA_DIR = path.resolve(__dirname, process.env.DATA_DIR || 'data');
+const DB_FILE = path.join(DATA_DIR, process.env.DB_NAME || 'sephiroth.sqlite');
 const USUARIOS_FILE = path.join(__dirname, 'usuarios.json');
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const UPLOADS_DIR = path.resolve(__dirname, process.env.UPLOADS_DIR || 'uploads');
 
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -104,7 +105,7 @@ function requireAuth(req, res, next) {
 migrateUsuariosJson();
 
 app.use(session({
-    secret: 'el_despertar_de_jenova',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 3600000 }

@@ -12,3 +12,5 @@
    subida de archivos.
 10. Instalar Sessions (pnpm add express-session).
 11. Usar SQLite nativo de Node para guardar usuarios y metadatos de archivos en data/sephiroth.sqlite.
+12. Copiar .env.example a .env y cambiar SESSION_SECRET por un valor privado.
+13. Arrancar la aplicación con pnpm start.
