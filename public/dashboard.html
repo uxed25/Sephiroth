@@ -107,6 +107,25 @@
             border-color: var(--mako);
         }
 
+        .file-info {
+            min-width: 0;
+        }
+
+        .file-name {
+            display: block;
+            max-width: 340px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-meta {
+            display: block;
+            margin-top: 6px;
+            color: #777;
+            font-size: 0.78rem;
+        }
+
         .actions a {
             color: var(--mako);
             text-decoration: none;
@@ -135,6 +154,18 @@
             color: #666;
             text-decoration: none;
             font-size: 0.8rem;
+        }
+
+        @media (max-width: 560px) {
+            .file-item {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .file-name {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
@@ -182,18 +213,71 @@
                     const nombre = archivo.nombre;
                     const li = document.createElement('li');
                     li.className = 'file-item';
-                    li.innerHTML = `
-                        <span title="${nombre}">${nombre.length > 30 ? nombre.substring(0,27)+'...' : nombre}</span>
-                        <div class="actions">
-                            <a href="/drive/${archivo.id}" download>Descargar</a>
-                            <button class="btn-eliminar" onclick="eliminarArchivo(${archivo.id})">Eliminar</button>
-                        </div>
-                    `;
+
+                    const info = document.createElement('div');
+                    info.className = 'file-info';
+
+                    const nombreArchivo = document.createElement('span');
+                    nombreArchivo.className = 'file-name';
+                    nombreArchivo.title = nombre;
+                    nombreArchivo.textContent = nombre;
+
+                    const metadatos = document.createElement('span');
+                    metadatos.className = 'file-meta';
+                    metadatos.textContent = `${formatearTamano(archivo.tamano)} · ${archivo.tipo || 'tipo desconocido'} · ${formatearFecha(archivo.fecha)}`;
+
+                    const acciones = document.createElement('div');
+                    acciones.className = 'actions';
+
+                    const descargar = document.createElement('a');
+                    descargar.href = `/drive/${archivo.id}`;
+                    descargar.download = '';
+                    descargar.textContent = 'Descargar';
+
+                    const eliminar = document.createElement('button');
+                    eliminar.className = 'btn-eliminar';
+                    eliminar.type = 'button';
+                    eliminar.textContent = 'Eliminar';
+                    eliminar.addEventListener('click', () => eliminarArchivo(archivo.id));
+
+                    info.appendChild(nombreArchivo);
+                    info.appendChild(metadatos);
+                    acciones.appendChild(descargar);
+                    acciones.appendChild(eliminar);
+                    li.appendChild(info);
+                    li.appendChild(acciones);
                     lista.appendChild(li);
                 });
             } catch (error) {
                 console.error("Error cargando archivos:", error);
             }
+        }
+
+        function formatearTamano(bytes) {
+            const totalBytes = Number(bytes);
+
+            if (!Number.isFinite(totalBytes) || totalBytes <= 0) {
+                return '0 B';
+            }
+
+            const unidades = ['B', 'KB', 'MB', 'GB'];
+            const indice = Math.min(Math.floor(Math.log(totalBytes) / Math.log(1024)), unidades.length - 1);
+            const valor = totalBytes / Math.pow(1024, indice);
+
+            return `${valor.toFixed(indice === 0 ? 0 : 1)} ${unidades[indice]}`;
+        }
+
+        function formatearFecha(fecha) {
+            const parsedDate = new Date(`${fecha} UTC`);
+
+            if (Number.isNaN(parsedDate.getTime())) {
+                return 'fecha desconocida';
+            }
+
+            return parsedDate.toLocaleString('es-ES', {
+                dateStyle: 'short',
+                timeStyle: 'short'
+            });
         }
 
         // 2. FUNCIÓN PARA ELIMINAR (CONECTADA AL INDEX.JS)
@@ -236,8 +320,6 @@
 // Y la llamamos al final del script junto a cargarArchivos()
 obtenerNombre();
 cargarArchivos();
-        // Ejecutar carga inicial
-        cargarArchivos();
     </script>
 </body>
 </html>

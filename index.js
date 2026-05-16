@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const session = require('express-session');
+const { randomBytes, scryptSync, timingSafeEqual } = require('crypto');
 const { DatabaseSync } = require('node:sqlite');
 
 const app = express();
@@ -49,6 +50,7 @@ db.exec(`
 const findUserByUsername = db.prepare('SELECT id, username, password FROM users WHERE username = ?');
 const findUserById = db.prepare('SELECT id, username FROM users WHERE id = ?');
 const createUser = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
+const updateUserPassword = db.prepare('UPDATE users SET password = ? WHERE id = ?');
 const listFilesByUser = db.prepare(`
     SELECT id, stored_name, original_name, size, mime_type, created_at
     FROM files
@@ -66,6 +68,34 @@ const createFile = db.prepare(`
 `);
 const deleteFileByIdAndUser = db.prepare('DELETE FROM files WHERE id = ? AND user_id = ?');
 
+function hashPassword(password) {
+    const salt = randomBytes(16).toString('hex');
+    const hash = scryptSync(password, salt, 64).toString('hex');
+
+    return `scrypt$${salt}$${hash}`;
+}
+
+function verifyPassword(password, storedPassword) {
+    const [algorithm, salt, storedHash] = String(storedPassword).split('$');
+
+    if (algorithm !== 'scrypt' || !salt || !storedHash) {
+        return false;
+    }
+
+    const candidateHash = scryptSync(password, salt, 64);
+    const savedHash = Buffer.from(storedHash, 'hex');
+
+    if (candidateHash.length !== savedHash.length) {
+        return false;
+    }
+
+    return timingSafeEqual(candidateHash, savedHash);
+}
+
+function isHashedPassword(password) {
+    return String(password).startsWith('scrypt$');
+}
+
 function migrateUsuariosJson() {
     if (!fs.existsSync(USUARIOS_FILE)) {
         return;
@@ -79,7 +109,7 @@ function migrateUsuariosJson() {
                 continue;
             }
 
-            createUser.run(usuario.user, usuario.pass);
+            createUser.run(usuario.user, hashPassword(usuario.pass));
         }
     } catch (error) {
         console.error('No se pudo migrar usuarios.json a SQLite:', error.message);
@@ -161,15 +191,28 @@ app.post('/register', (req, res) => {
         return res.send('<h1>Error</h1><p>El guerrero ya existe.</p><a href="/registro">Volver</a>');
     }
 
-    createUser.run(nuevo_user, nueva_pass);
+    createUser.run(nuevo_user, hashPassword(nueva_pass));
     res.redirect('/');
 });
 
 app.post('/login', (req, res) => {
     const { user, pass } = req.body;
-    const encontrado = findUserByUsername.get(user);
 
-    if (encontrado && encontrado.password === pass) {
+    if (!user || !pass) {
+        return res.status(400).send('<h1>Error</h1><p>Faltan credenciales.</p><a href="/">Volver</a>');
+    }
+
+    const encontrado = findUserByUsername.get(user);
+    const loginValido = encontrado && (
+        verifyPassword(pass, encontrado.password) ||
+        encontrado.password === pass
+    );
+
+    if (loginValido) {
+        if (!isHashedPassword(encontrado.password)) {
+            updateUserPassword.run(hashPassword(pass), encontrado.id);
+        }
+
         req.session.userId = encontrado.id;
         req.session.usuarioLogueado = encontrado.username;
         return res.redirect('/dashboard');
