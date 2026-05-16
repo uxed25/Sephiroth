@@ -44,7 +44,7 @@ router.post('/upload', requireAuth, upload.single('archivo_nube'), (req, res) =>
         );
     }
 
-    res.redirect('/dashboard');
+    res.redirect('/dashboard?uploaded=1');
 });
 
 router.get('/api/archivos', requireAuth, (req, res) => {

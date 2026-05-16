@@ -10,7 +10,10 @@
             --acero: #c0c0c0;
             --mako: #00f2ad;
             --peligro: #8b0000;
+            --peligro-claro: #ff5c5c;
             --card-bg: #161616;
+            --panel: #202020;
+            --muted: #777;
         }
 
         body {
@@ -54,18 +57,52 @@
             border: 1px dashed var(--acero);
             padding: 20px;
             margin-bottom: 30px;
-            /* --- NUEVOS ESTILOS PARA CENTRAR --- */
             display: flex;
-            flex-direction: column; /* Apila los elementos uno encima de otro */
-            align-items: center;    /* Centra horizontalmente todo el contenido */
+            flex-direction: column;
+            align-items: center;
             text-align: center;
         }
 
         input[type="file"] {
-            margin-bottom: 15px;
-            display: block;
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+        }
+
+        .upload-form {
             width: 100%;
-            color: var(--acero);
+        }
+
+        .file-picker {
+            background: var(--panel);
+            border: 1px solid #333;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            margin-bottom: 15px;
+            padding: 16px;
+            text-align: left;
+            transition: 0.2s;
+        }
+
+        .file-picker:hover {
+            border-color: var(--mako);
+        }
+
+        .file-picker strong {
+            color: var(--mako);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .file-picker span {
+            color: var(--muted);
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         button {
@@ -83,6 +120,53 @@
             background: var(--mako);
             color: var(--abismo);
             box-shadow: 0 0 15px var(--mako);
+        }
+
+        button:disabled {
+            border-color: #444;
+            color: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        button:disabled:hover {
+            background: transparent;
+            color: #555;
+        }
+
+        .notice {
+            border-radius: 5px;
+            display: none;
+            margin-bottom: 20px;
+            padding: 12px 14px;
+        }
+
+        .notice.is-visible {
+            display: block;
+        }
+
+        .notice.success {
+            background: rgba(0, 242, 173, 0.12);
+            border: 1px solid rgba(0, 242, 173, 0.45);
+            color: var(--mako);
+        }
+
+        .notice.error {
+            background: rgba(139, 0, 0, 0.18);
+            border: 1px solid rgba(255, 92, 92, 0.45);
+            color: var(--peligro-claro);
+        }
+
+        .section-title {
+            align-items: baseline;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .summary {
+            color: var(--muted);
+            font-size: 0.82rem;
         }
 
         .file-list {
@@ -109,6 +193,7 @@
 
         .file-info {
             min-width: 0;
+            padding-right: 16px;
         }
 
         .file-name {
@@ -142,6 +227,15 @@
             cursor: pointer;
         }
 
+        .empty-state {
+            background: var(--panel);
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: var(--muted);
+            padding: 22px;
+            text-align: center;
+        }
+
         .btn-eliminar:hover {
             background: var(--peligro);
             color: white;
@@ -163,6 +257,12 @@
                 gap: 12px;
             }
 
+            .section-title {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 4px;
+            }
+
             .file-name {
                 max-width: 100%;
             }
@@ -179,15 +279,24 @@
     </header>
 
     <div class="container">
+        <div id="mensaje" class="notice" role="status" aria-live="polite"></div>
+
         <div class="upload-section">
             <h3>Invocar Objeto</h3>
-            <form action="/upload" method="POST" enctype="multipart/form-data">
-                <input type="file" name="archivo_nube" required>
-                <button type="submit">Subir a la Corriente Vital</button>
+            <form id="uploadForm" class="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
+                <label class="file-picker" for="archivoNube">
+                    <strong>Seleccionar archivo</strong>
+                    <span id="archivoSeleccionado">Ningún archivo seleccionado</span>
+                </label>
+                <input id="archivoNube" type="file" name="archivo_nube" required>
+                <button id="botonSubir" type="submit" disabled>Subir a la Corriente Vital</button>
             </form>
         </div>
 
-        <h3>Archivos en la Nube</h3>
+        <div class="section-title">
+            <h3>Archivos en la Nube</h3>
+            <span id="resumenArchivos" class="summary">Cargando...</span>
+        </div>
         <ul id="listaArchivos" class="file-list">
             </ul>
 
@@ -195,19 +304,57 @@
     </div>
 
     <script>
-        // 1. CARGAR ARCHIVOS AL INICIAR
+        const mensaje = document.getElementById('mensaje');
+        const resumenArchivos = document.getElementById('resumenArchivos');
+        const uploadForm = document.getElementById('uploadForm');
+        const archivoNube = document.getElementById('archivoNube');
+        const archivoSeleccionado = document.getElementById('archivoSeleccionado');
+        const botonSubir = document.getElementById('botonSubir');
+
+        function mostrarMensaje(texto, tipo = 'success') {
+            mensaje.textContent = texto;
+            mensaje.className = `notice ${tipo} is-visible`;
+        }
+
+        function limpiarMensaje() {
+            mensaje.textContent = '';
+            mensaje.className = 'notice';
+        }
+
+        function mostrarEstadoVacio(texto) {
+            const lista = document.getElementById('listaArchivos');
+            lista.innerHTML = '';
+
+            const estado = document.createElement('li');
+            estado.className = 'empty-state';
+            estado.textContent = texto;
+            lista.appendChild(estado);
+        }
+
         async function cargarArchivos() {
+            const lista = document.getElementById('listaArchivos');
+            resumenArchivos.textContent = 'Cargando...';
+            mostrarEstadoVacio('Cargando archivos...');
+
             try {
                 const respuesta = await fetch('/api/archivos');
+
+                if (!respuesta.ok) {
+                    throw new Error('No se pudo cargar la lista de archivos.');
+                }
+
                 const archivos = await respuesta.json();
-                const lista = document.getElementById('listaArchivos');
                 
                 lista.innerHTML = ''; 
                 
                 if (archivos.length === 0) {
-                    lista.innerHTML = '<p style="text-align:center; color:#555;">No hay objetos en la nube.</p>';
+                    resumenArchivos.textContent = '0 archivos';
+                    mostrarEstadoVacio('No hay objetos en la nube.');
                     return;
                 }
+
+                const totalBytes = archivos.reduce((total, archivo) => total + Number(archivo.tamano || 0), 0);
+                resumenArchivos.textContent = `${archivos.length} ${archivos.length === 1 ? 'archivo' : 'archivos'} · ${formatearTamano(totalBytes)}`;
 
                 archivos.forEach(archivo => {
                     const nombre = archivo.nombre;
@@ -250,6 +397,9 @@
                 });
             } catch (error) {
                 console.error("Error cargando archivos:", error);
+                resumenArchivos.textContent = 'Error';
+                mostrarEstadoVacio('No se pudieron cargar los archivos.');
+                mostrarMensaje('No se pudieron cargar los archivos. Revisa la conexión e inténtalo de nuevo.', 'error');
             }
         }
 
@@ -280,10 +430,10 @@
             });
         }
 
-        // 2. FUNCIÓN PARA ELIMINAR (CONECTADA AL INDEX.JS)
         async function eliminarArchivo(idArchivo) {
             if (confirm(`¿Estás seguro de que quieres destruir este objeto?`)) {
                 try {
+                    limpiarMensaje();
                     const res = await fetch('/api/eliminar', {
                         method: 'POST',
                         headers: { 
@@ -295,17 +445,30 @@
                     const resultado = await res.json();
                     
                     if (resultado.success) {
-                        // Si el servidor confirma el borrado, refrescamos la lista
+                        mostrarMensaje('Archivo eliminado correctamente.');
                         cargarArchivos();
                     } else {
-                        alert("Error: El servidor no pudo borrar el archivo.");
+                        mostrarMensaje('El servidor no pudo borrar el archivo.', 'error');
                     }
                 } catch (error) {
                     console.error("Error en la petición de borrado:", error);
-                    alert("Error de conexión con el servidor.");
+                    mostrarMensaje('Error de conexión al borrar el archivo.', 'error');
                 }
             }
         }
+
+        archivoNube.addEventListener('change', () => {
+            const archivo = archivoNube.files[0];
+            archivoSeleccionado.textContent = archivo ? `${archivo.name} · ${formatearTamano(archivo.size)}` : 'Ningún archivo seleccionado';
+            botonSubir.disabled = !archivo;
+            limpiarMensaje();
+        });
+
+        uploadForm.addEventListener('submit', () => {
+            botonSubir.disabled = true;
+            botonSubir.textContent = 'Subiendo...';
+        });
+
         async function obtenerNombre() {
     try {
         const res = await fetch('/api/usuario-actual');
@@ -317,7 +480,12 @@
     }
 }
 
-// Y la llamamos al final del script junto a cargarArchivos()
+const params = new URLSearchParams(window.location.search);
+if (params.get('uploaded') === '1') {
+    mostrarMensaje('Archivo subido correctamente.');
+    window.history.replaceState({}, '', window.location.pathname);
+}
+
 obtenerNombre();
 cargarArchivos();
     </script>
