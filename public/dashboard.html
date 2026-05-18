@@ -61,6 +61,13 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .upload-section.is-dragging {
+            background: rgba(0, 242, 173, 0.08);
+            border-color: var(--mako);
+            box-shadow: 0 0 18px rgba(0, 242, 173, 0.2);
         }
 
         input[type="file"] {
@@ -87,7 +94,8 @@
             transition: 0.2s;
         }
 
-        .file-picker:hover {
+        .file-picker:hover,
+        .upload-section.is-dragging .file-picker {
             border-color: var(--mako);
         }
 
@@ -281,11 +289,11 @@
     <div class="container">
         <div id="mensaje" class="notice" role="status" aria-live="polite"></div>
 
-        <div class="upload-section">
+        <div id="uploadSection" class="upload-section">
             <h3>Invocar Objeto</h3>
             <form id="uploadForm" class="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
                 <label class="file-picker" for="archivoNube">
-                    <strong>Seleccionar archivo</strong>
+                    <strong>Arrastrar o seleccionar archivo</strong>
                     <span id="archivoSeleccionado">Ningún archivo seleccionado</span>
                 </label>
                 <input id="archivoNube" type="file" name="archivo_nube" required>
@@ -306,6 +314,7 @@
     <script>
         const mensaje = document.getElementById('mensaje');
         const resumenArchivos = document.getElementById('resumenArchivos');
+        const uploadSection = document.getElementById('uploadSection');
         const uploadForm = document.getElementById('uploadForm');
         const archivoNube = document.getElementById('archivoNube');
         const archivoSeleccionado = document.getElementById('archivoSeleccionado');
@@ -457,10 +466,60 @@
             }
         }
 
-        archivoNube.addEventListener('change', () => {
-            const archivo = archivoNube.files[0];
+        function actualizarArchivoSeleccionado(archivo) {
             archivoSeleccionado.textContent = archivo ? `${archivo.name} · ${formatearTamano(archivo.size)}` : 'Ningún archivo seleccionado';
             botonSubir.disabled = !archivo;
+        }
+
+        function asignarArchivo(files) {
+            const archivo = files && files[0];
+
+            if (!archivo) {
+                return;
+            }
+
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(archivo);
+            archivoNube.files = dataTransfer.files;
+            actualizarArchivoSeleccionado(archivo);
+            limpiarMensaje();
+        }
+
+        let contadorArrastre = 0;
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((evento) => {
+            uploadSection.addEventListener(evento, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+            });
+        });
+
+        uploadSection.addEventListener('dragenter', () => {
+            contadorArrastre += 1;
+            uploadSection.classList.add('is-dragging');
+        });
+
+        uploadSection.addEventListener('dragover', (event) => {
+            event.dataTransfer.dropEffect = 'copy';
+            uploadSection.classList.add('is-dragging');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            contadorArrastre = Math.max(0, contadorArrastre - 1);
+
+            if (contadorArrastre === 0) {
+                uploadSection.classList.remove('is-dragging');
+            }
+        });
+
+        uploadSection.addEventListener('drop', (event) => {
+            contadorArrastre = 0;
+            uploadSection.classList.remove('is-dragging');
+            asignarArchivo(event.dataTransfer.files);
+        });
+
+        archivoNube.addEventListener('change', () => {
+            actualizarArchivoSeleccionado(archivoNube.files[0]);
             limpiarMensaje();
         });
 
